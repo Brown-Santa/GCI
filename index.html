@@ -329,11 +329,11 @@
 
 <script>
 /* ============================================================
-   CONFIG — replace with your Supabase project credentials
+   CONFIG — Supabase project credentials
    ============================================================ */
 const SUPABASE_URL = "https://xqrnzrwjbgxgdtkaoenv.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhxcm56cndqYmd4Z2R0a2FvZW52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMTg0MjksImV4cCI6MjEwMzU5NDQyOX0.rduYO0Vftzxm0swRvu_1-Z6ZTVi9K-kdpmL9vwYQ_5s";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ============================================================
    STATE
@@ -348,7 +348,7 @@ let currentTaskId = null; // null = creating new task
 async function handleLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
   if (error) {
     document.getElementById('loginError').style.display = 'block';
     return;
@@ -358,13 +358,13 @@ async function handleLogin() {
 }
 
 async function handleLogout() {
-  await supabase.auth.signOut();
+  await supabaseClient.auth.signOut();
   document.getElementById('app').classList.remove('ready');
   document.getElementById('loginScreen').style.display = 'flex';
 }
 
 async function checkSession() {
-  const { data } = await supabase.auth.getSession();
+  const { data } = await supabaseClient.auth.getSession();
   if (data.session) {
     await boot();
   }
@@ -392,17 +392,17 @@ function switchView(view) {
    DATA LOADING
    ============================================================ */
 async function loadAreas() {
-  const { data, error } = await supabase.from('areas').select('*').order('name');
+  const { data, error } = await supabaseClient.from('areas').select('*').order('name');
   if (!error) areas = data;
 }
 
 async function loadTasks() {
-  const { data, error } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
+  const { data, error } = await supabaseClient.from('tasks').select('*').order('created_at', { ascending: false });
   if (!error) tasks = data;
 }
 
 async function loadComments(taskId) {
-  const { data, error } = await supabase.from('comments').select('*').eq('task_id', taskId).order('created_at', { ascending: true });
+  const { data, error } = await supabaseClient.from('comments').select('*').eq('task_id', taskId).order('created_at', { ascending: true });
   return error ? [] : data;
 }
 
@@ -493,7 +493,7 @@ function renderDashboard() {
 }
 
 async function renderRecentUpdates() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('comments')
     .select('*, tasks(name)')
     .order('created_at', { ascending: false })
@@ -587,7 +587,7 @@ async function addArea() {
   const input = document.getElementById('newAreaName');
   const name = input.value.trim();
   if (!name) return;
-  const { error } = await supabase.from('areas').insert({ name });
+  const { error } = await supabaseClient.from('areas').insert({ name });
   if (error) { alert('Could not add area: ' + error.message); return; }
   input.value = '';
   await loadAreas();
@@ -598,7 +598,7 @@ async function addArea() {
 async function deleteArea(id) {
   const count = tasks.filter(t => t.area_id === id).length;
   if (count > 0 && !confirm(`This area has ${count} task(s). They will become unassigned. Continue?`)) return;
-  const { error } = await supabase.from('areas').delete().eq('id', id);
+  const { error } = await supabaseClient.from('areas').delete().eq('id', id);
   if (error) { alert('Could not delete area: ' + error.message); return; }
   await loadAreas();
   await loadTasks();
@@ -649,7 +649,7 @@ async function saveTask() {
 
   if (currentTaskId) {
     const prev = tasks.find(t => t.id === currentTaskId);
-    const { error } = await supabase.from('tasks').update({
+    const { error } = await supabaseClient.from('tasks').update({
       name, area_id, status, deadline, notes, updated_at: new Date().toISOString()
     }).eq('id', currentTaskId);
     if (error) { alert('Could not save: ' + error.message); return; }
@@ -662,7 +662,7 @@ async function saveTask() {
       await insertSystemComment(currentTaskId, deadline ? `Deadline set to ${deadline}` : 'Deadline removed');
     }
   } else {
-    const { data, error } = await supabase.from('tasks').insert({ name, area_id, status, deadline, notes }).select().single();
+    const { data, error } = await supabaseClient.from('tasks').insert({ name, area_id, status, deadline, notes }).select().single();
     if (error) { alert('Could not create task: ' + error.message); return; }
     await insertSystemComment(data.id, 'Task created');
   }
@@ -675,7 +675,7 @@ async function saveTask() {
 async function deleteTask() {
   if (!currentTaskId) return;
   if (!confirm('Delete this task and all its comments?')) return;
-  const { error } = await supabase.from('tasks').delete().eq('id', currentTaskId);
+  const { error } = await supabaseClient.from('tasks').delete().eq('id', currentTaskId);
   if (error) { alert('Could not delete: ' + error.message); return; }
   await loadTasks();
   renderAll();
@@ -683,7 +683,7 @@ async function deleteTask() {
 }
 
 async function insertSystemComment(taskId, text) {
-  await supabase.from('comments').insert({ task_id: taskId, author_name: 'System', text, is_system: true });
+  await supabaseClient.from('comments').insert({ task_id: taskId, author_name: 'System', text, is_system: true });
 }
 
 /* ============================================================
@@ -713,7 +713,7 @@ async function addComment() {
   const text = textInput.value.trim();
   if (!text) return;
 
-  const { error } = await supabase.from('comments').insert({ task_id: currentTaskId, author_name, text });
+  const { error } = await supabaseClient.from('comments').insert({ task_id: currentTaskId, author_name, text });
   if (error) { alert('Could not post comment: ' + error.message); return; }
   textInput.value = '';
   await renderCommentThread(currentTaskId);
