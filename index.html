@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Green Card Impact — Progress Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --navy: #14213d;        /* deep navy — primary, matches wordmark */
+    --navy-light: #1f3363;  /* lighter navy for hover states */
+    --slate: #5b6270;
+    --paper: #f7f8fa;
+    --white: #ffffff;
+    --line: #e2e5ea;
+    --amber: #c9822a;       /* warning/in-progress accent, kept distinct from brand red */
+    --green: #2f8f5b;
+    --red: #b3202f;         /* flag red — used as brand accent + overdue/error */
+    --text: #1a2030;
+    --muted: #7a8395;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--paper);
+    color: var(--text);
+  }
+  #app { display: none; }
+  #app.ready { display: block; }
+
+  /* ---------- Login ---------- */
+  #loginScreen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--navy);
+  }
+  .login-box {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 40px 36px;
+    width: 340px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+  }
+  .login-logo { display: block; width: 100%; max-width: 200px; margin: 0 auto 20px; }
+  .login-box h1 { font-size: 20px; margin: 0 0 4px; color: var(--navy); text-align: center; }
+  .login-box p.sub { color: var(--muted); font-size: 13px; margin: 0 0 24px; text-align: center; }
+
+  .brand-chip {
+    width: 34px; height: 34px; background: white; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
+  }
+  .brand-chip img { width: 26px; height: 26px; object-fit: contain; }
+  .brand-group { display: flex; align-items: center; gap: 12px; }
+  .login-box input {
+    width: 100%; padding: 10px 12px; margin-bottom: 12px;
+    border: 1px solid var(--line); border-radius: 6px; font-size: 14px;
+  }
+  .login-box button {
+    width: 100%; padding: 11px; background: var(--navy); color: white;
+    border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .login-box button:hover { background: var(--navy-light); }
+  #loginError { color: var(--red); font-size: 13px; margin-top: 10px; display: none; }
+
+  /* ---------- Layout ---------- */
+  header.topbar {
+    background: var(--navy);
+    color: white;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header.topbar h1 { font-size: 16px; margin: 0; font-weight: 600; letter-spacing: 0.2px; }
+  nav.tabs { display: flex; gap: 4px; }
+  nav.tabs button {
+    background: transparent; border: none; color: rgba(255,255,255,0.65);
+    padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;
+  }
+  nav.tabs button.active { background: rgba(255,255,255,0.12); color: white; }
+  nav.tabs button:hover { color: white; }
+  #logoutBtn { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+
+  main { max-width: 1080px; margin: 0 auto; padding: 24px; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ---------- Dashboard ---------- */
+  .grid-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .card { background: white; border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+  .card .num { font-size: 26px; font-weight: 700; color: var(--navy); }
+  .card .label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .progress-card { grid-column: span 4; background: var(--navy); color: white; border: none; }
+  .progress-card .num { color: white; font-size: 34px; }
+  .progress-bar-track { background: rgba(255,255,255,0.15); border-radius: 999px; height: 8px; margin-top: 10px; overflow: hidden; }
+  .progress-bar-fill { background: #4fc385; height: 100%; border-radius: 999px; transition: width 0.4s ease; }
+
+  .panel { background: white; border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; }
+  .panel h2 { font-size: 14px; margin: 0 0 12px; color: var(--navy); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--line); font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+  td { padding: 9px 8px; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: none; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover { background: var(--paper); }
+
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .badge-not-started { background: #eceff3; color: var(--slate); }
+  .badge-in-progress { background: #fdf1e2; color: var(--amber); }
+  .badge-completed { background: #e6f5ec; color: var(--green); }
+
+  .deadline-tag { font-size: 12px; font-weight: 600; }
+  .deadline-overdue { color: var(--red); }
+  .deadline-soon { color: var(--amber); }
+  .deadline-upcoming { color: var(--muted); }
+
+  .empty { color: var(--muted); font-size: 13px; padding: 12px 0; }
+
+  /* ---------- Tasks view ---------- */
+  .toolbar { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; flex-wrap: wrap; }
+  .toolbar select, .toolbar input[type=text] {
+    padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; background: white;
+  }
+  .btn-primary {
+    background: var(--navy); color: white; border: none; padding: 9px 16px;
+    border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; margin-left: auto;
+  }
+  .btn-primary:hover { background: var(--navy-light); }
+  .btn-secondary {
+    background: white; color: var(--navy); border: 1px solid var(--line); padding: 8px 14px;
+    border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+
+  /* ---------- Areas view ---------- */
+  .area-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 8px; border-bottom: 1px solid var(--line); }
+  .area-row:last-child { border-bottom: none; }
+  .area-name { font-size: 14px; }
+  .area-count { font-size: 12px; color: var(--muted); }
+  .icon-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; padding: 4px 8px; }
+  .icon-btn:hover { color: var(--red); }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(15,20,35,0.55);
+    align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; z-index: 50;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: white; border-radius: var(--radius); width: 100%; max-width: 560px;
+    padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal h2 { margin: 0 0 18px; font-size: 17px; color: var(--navy); }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: var(--slate); margin-bottom: 5px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; font-family: inherit;
+  }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .field-row { display: flex; gap: 12px; }
+  .field-row .field { flex: 1; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+
+  .comment-thread { max-height: 220px; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; padding: 10px; margin-bottom: 10px; background: var(--paper); }
+  .comment { padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .comment:last-child { border-bottom: none; }
+  .comment .meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .comment.system { color: var(--muted); font-style: italic; }
+  .comment-input-row { display: flex; gap: 8px; }
+  .comment-input-row input[type=text] { flex: 1; }
+  .comment-input-row input[name=authorName] { width: 110px; flex: none; }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<div id="loginScreen">
+  <div class="login-box">
+    <img src="logo.png" alt="Green Card Impact" class="login-logo" />
+    <h1>Progress Tracker</h1>
+    <p class="sub">Sign in to continue</p>
+    <input type="email" id="loginEmail" placeholder="Email" />
+    <input type="password" id="loginPassword" placeholder="Password" />
+    <button onclick="handleLogin()">Sign In</button>
+    <div id="loginError">Invalid email or password.</div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="app">
+  <header class="topbar">
+    <div class="brand-group">
+      <div class="brand-chip"><img src="logo_icon.png" alt="" /></div>
+      <h1>Green Card Impact <span style="opacity:0.55; font-weight:400;">— Tracker</span></h1>
+    </div>
+    <nav class="tabs">
+      <button data-view="dashboard" class="active" onclick="switchView('dashboard')">Dashboard</button>
+      <button data-view="tasks" onclick="switchView('tasks')">Tasks</button>
+      <button data-view="areas" onclick="switchView('areas')">Areas</button>
+    </nav>
+    <button id="logoutBtn" onclick="handleLogout()">Sign out</button>
+  </header>
+
+  <main>
+    <!-- ---------- DASHBOARD ---------- -->
+    <div class="view active" id="view-dashboard">
+      <div class="grid-cards">
+        <div class="card progress-card">
+          <div class="label">OVERALL PROGRESS</div>
+          <div class="num" id="progressPct">0%</div>
+          <div class="progress-bar-track"><div class="progress-bar-fill" id="progressBarFill" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="grid-cards">
+        <div class="card"><div class="num" id="statTotal">0</div><div class="label">Total Tasks</div></div>
+        <div class="card"><div class="num" id="statCompleted">0</div><div class="label">Completed</div></div>
+        <div class="card"><div class="num" id="statInProgress">0</div><div class="label">In Progress</div></div>
+        <div class="card"><div class="num" id="statNotStarted">0</div><div class="label">Not Started</div></div>
+      </div>
+
+      <div class="panel">
+        <h2>Upcoming Deadlines</h2>
+        <table>
+          <thead><tr><th>Task</th><th>Area</th><th>Deadline</th><th>Status</th></tr></thead>
+          <tbody id="upcomingDeadlinesBody"></tbody>
+        </table>
+        <div class="empty" id="upcomingDeadlinesEmpty" style="display:none;">No upcoming deadlines.</div>
+      </div>
+
+      <div class="panel">
+        <h2>Recent Updates</h2>
+        <div id="recentUpdatesList"></div>
+        <div class="empty" id="recentUpdatesEmpty" style="display:none;">No recent activity yet.</div>
+      </div>
+    </div>
+
+    <!-- ---------- TASKS ---------- -->
+    <div class="view" id="view-tasks">
+      <div class="toolbar">
+        <select id="filterArea" onchange="renderTasks()"><option value="">All Areas</option></select>
+        <select id="filterStatus" onchange="renderTasks()">
+          <option value="">All Statuses</option>
+          <option>Not Started</option>
+          <option>In Progress</option>
+          <option>Completed</option>
+        </select>
+        <select id="sortBy" onchange="renderTasks()">
+          <option value="deadline">Sort: Deadline</option>
+          <option value="updated">Sort: Recently Updated</option>
+          <option value="status">Sort: Status</option>
+          <option value="area">Sort: Area</option>
+        </select>
+        <button class="btn-primary" onclick="openTaskModal()">+ Add Task</button>
+      </div>
+      <div class="panel">
+        <table>
+          <thead><tr><th>Task</th><th>Area</th><th>Status</th><th>Deadline</th></tr></thead>
+          <tbody id="tasksBody"></tbody>
+        </table>
+        <div class="empty" id="tasksEmpty" style="display:none;">No tasks match this filter.</div>
+      </div>
+    </div>
+
+    <!-- ---------- AREAS ---------- -->
+    <div class="view" id="view-areas">
+      <div class="toolbar">
+        <input type="text" id="newAreaName" placeholder="New area name" style="flex:1; max-width:260px;" />
+        <button class="btn-primary" style="margin-left:0;" onclick="addArea()">+ Add Area</button>
+      </div>
+      <div class="panel">
+        <div id="areasList"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ================= TASK MODAL ================= -->
+<div class="modal-overlay" id="taskModalOverlay">
+  <div class="modal">
+    <h2 id="taskModalTitle">New Task</h2>
+    <input type="hidden" id="taskId" />
+    <div class="field">
+      <label>Task Name</label>
+      <input type="text" id="taskName" placeholder="e.g. Apply for XYZ Award" />
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Area</label>
+        <select id="taskArea"></select>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="taskStatus">
+          <option>Not Started</option>
+          <option>In Progress</option>
+          <option>Completed</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Expected Deadline</label>
+        <input type="date" id="taskDeadline" />
+      </div>
+    </div>
+    <div class="field">
+      <label>Description / Notes</label>
+      <textarea id="taskNotes" placeholder="Optional notes..."></textarea>
+    </div>
+
+    <div id="commentSection" style="display:none;">
+      <label style="display:block; font-size:12px; font-weight:600; color: var(--slate); margin-bottom:6px;">Comments & History</label>
+      <div class="comment-thread" id="commentThread"></div>
+      <div class="comment-input-row">
+        <input type="text" name="authorName" id="commentAuthor" placeholder="Your name" />
+        <input type="text" id="commentText" placeholder="Add a comment..." onkeydown="if(event.key==='Enter') addComment()" />
+        <button class="btn-secondary" onclick="addComment()">Post</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="icon-btn" id="deleteTaskBtn" style="display:none; margin-right:auto; color:var(--red);" onclick="deleteTask()">Delete Task</button>
+      <button class="btn-secondary" onclick="closeTaskModal()">Cancel</button>
+      <button class="btn-primary" style="margin-left:0;" onclick="saveTask()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG — replace with your Supabase project credentials
+   ============================================================ */
+const SUPABASE_URL = "YOUR_SUPABASE_URL";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let areas = [];
+let tasks = [];
+let currentTaskId = null; // null = creating new task
+
+/* ============================================================
+   AUTH
+   ============================================================ */
+async function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    document.getElementById('loginError').style.display = 'block';
+    return;
+  }
+  document.getElementById('loginError').style.display = 'none';
+  await boot();
+}
+
+async function handleLogout() {
+  await supabase.auth.signOut();
+  document.getElementById('app').classList.remove('ready');
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+async function checkSession() {
+  const { data } = await supabase.auth.getSession();
+  if (data.session) {
+    await boot();
+  }
+}
+
+async function boot() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').classList.add('ready');
+  await loadAreas();
+  await loadTasks();
+  renderAll();
+}
+
+/* ============================================================
+   VIEW SWITCHING
+   ============================================================ */
+function switchView(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+  document.querySelector(`nav.tabs button[data-view="${view}"]`).classList.add('active');
+}
+
+/* ============================================================
+   DATA LOADING
+   ============================================================ */
+async function loadAreas() {
+  const { data, error } = await supabase.from('areas').select('*').order('name');
+  if (!error) areas = data;
+}
+
+async function loadTasks() {
+  const { data, error } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
+  if (!error) tasks = data;
+}
+
+async function loadComments(taskId) {
+  const { data, error } = await supabase.from('comments').select('*').eq('task_id', taskId).order('created_at', { ascending: true });
+  return error ? [] : data;
+}
+
+/* ============================================================
+   RENDER — ALL
+   ============================================================ */
+function renderAll() {
+  renderAreaDropdowns();
+  renderDashboard();
+  renderTasks();
+  renderAreas();
+}
+
+function renderAreaDropdowns() {
+  const opts = areas.map(a => `<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('');
+  document.getElementById('taskArea').innerHTML = opts;
+  document.getElementById('filterArea').innerHTML = '<option value="">All Areas</option>' + opts;
+}
+
+function areaName(id) {
+  const a = areas.find(x => x.id === id);
+  return a ? a.name : '—';
+}
+
+/* ============================================================
+   DEADLINE HELPERS
+   ============================================================ */
+function deadlineState(deadline, status) {
+  if (!deadline || status === 'Completed') return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(deadline);
+  const diffDays = Math.round((d - today) / 86400000);
+  if (diffDays < 0) return 'overdue';
+  if (diffDays <= 7) return 'soon';
+  return 'upcoming';
+}
+
+function deadlineLabel(deadline, status) {
+  if (!deadline) return '—';
+  const state = deadlineState(deadline, status);
+  const formatted = new Date(deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  if (!state) return formatted;
+  const cls = state === 'overdue' ? 'deadline-overdue' : state === 'soon' ? 'deadline-soon' : 'deadline-upcoming';
+  const tag = state === 'overdue' ? 'Overdue' : state === 'soon' ? 'Due Soon' : 'Upcoming';
+  return `<span class="deadline-tag ${cls}">${formatted} · ${tag}</span>`;
+}
+
+function statusBadge(status) {
+  const cls = status === 'Completed' ? 'badge-completed' : status === 'In Progress' ? 'badge-in-progress' : 'badge-not-started';
+  return `<span class="badge ${cls}">${status}</span>`;
+}
+
+/* ============================================================
+   RENDER — DASHBOARD
+   ============================================================ */
+function renderDashboard() {
+  const total = tasks.length;
+  const completed = tasks.filter(t => t.status === 'Completed').length;
+  const inProgress = tasks.filter(t => t.status === 'In Progress').length;
+  const notStarted = tasks.filter(t => t.status === 'Not Started').length;
+  const pct = total ? Math.round((completed / total) * 100) : 0;
+
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressBarFill').style.width = pct + '%';
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statCompleted').textContent = completed;
+  document.getElementById('statInProgress').textContent = inProgress;
+  document.getElementById('statNotStarted').textContent = notStarted;
+
+  // Upcoming deadlines: not completed, has deadline, sorted ascending
+  const upcoming = tasks
+    .filter(t => t.deadline && t.status !== 'Completed')
+    .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
+    .slice(0, 8);
+
+  const body = document.getElementById('upcomingDeadlinesBody');
+  document.getElementById('upcomingDeadlinesEmpty').style.display = upcoming.length ? 'none' : 'block';
+  body.innerHTML = upcoming.map(t => `
+    <tr class="clickable" onclick="openTaskModal('${t.id}')">
+      <td>${escapeHtml(t.name)}</td>
+      <td>${escapeHtml(areaName(t.area_id))}</td>
+      <td>${deadlineLabel(t.deadline, t.status)}</td>
+      <td>${statusBadge(t.status)}</td>
+    </tr>
+  `).join('');
+
+  renderRecentUpdates();
+}
+
+async function renderRecentUpdates() {
+  const { data, error } = await supabase
+    .from('comments')
+    .select('*, tasks(name)')
+    .order('created_at', { ascending: false })
+    .limit(8);
+
+  const list = document.getElementById('recentUpdatesList');
+  const empty = document.getElementById('recentUpdatesEmpty');
+  if (error || !data || !data.length) {
+    empty.style.display = 'block';
+    list.innerHTML = '';
+    return;
+  }
+  empty.style.display = 'none';
+  list.innerHTML = data.map(c => `
+    <div class="comment ${c.is_system ? 'system' : ''}">
+      <div><strong>${escapeHtml(c.tasks?.name || 'Task')}</strong> — ${escapeHtml(c.text)}</div>
+      <div class="meta">${c.is_system ? 'System' : escapeHtml(c.author_name)} · ${timeAgo(c.created_at)}</div>
+    </div>
+  `).join('');
+}
+
+function timeAgo(iso) {
+  const diff = (Date.now() - new Date(iso)) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + ' min ago';
+  if (diff < 86400) return Math.floor(diff/3600) + ' hr ago';
+  return Math.floor(diff/86400) + ' day(s) ago';
+}
+
+/* ============================================================
+   RENDER — TASKS
+   ============================================================ */
+function renderTasks() {
+  const areaFilter = document.getElementById('filterArea').value;
+  const statusFilter = document.getElementById('filterStatus').value;
+  const sortBy = document.getElementById('sortBy').value;
+
+  let filtered = tasks.filter(t =>
+    (!areaFilter || t.area_id === areaFilter) &&
+    (!statusFilter || t.status === statusFilter)
+  );
+
+  filtered.sort((a, b) => {
+    if (sortBy === 'deadline') {
+      if (!a.deadline) return 1;
+      if (!b.deadline) return -1;
+      return new Date(a.deadline) - new Date(b.deadline);
+    }
+    if (sortBy === 'updated') return new Date(b.updated_at) - new Date(a.updated_at);
+    if (sortBy === 'status') return a.status.localeCompare(b.status);
+    if (sortBy === 'area') return areaName(a.area_id).localeCompare(areaName(b.area_id));
+    return 0;
+  });
+
+  const body = document.getElementById('tasksBody');
+  document.getElementById('tasksEmpty').style.display = filtered.length ? 'none' : 'block';
+  body.innerHTML = filtered.map(t => `
+    <tr class="clickable" onclick="openTaskModal('${t.id}')">
+      <td>${escapeHtml(t.name)}</td>
+      <td>${escapeHtml(areaName(t.area_id))}</td>
+      <td>${statusBadge(t.status)}</td>
+      <td>${deadlineLabel(t.deadline, t.status)}</td>
+    </tr>
+  `).join('');
+}
+
+/* ============================================================
+   RENDER — AREAS
+   ============================================================ */
+function renderAreas() {
+  const list = document.getElementById('areasList');
+  if (!areas.length) {
+    list.innerHTML = '<div class="empty">No areas yet.</div>';
+    return;
+  }
+  list.innerHTML = areas.map(a => {
+    const count = tasks.filter(t => t.area_id === a.id).length;
+    return `
+      <div class="area-row">
+        <div>
+          <div class="area-name">${escapeHtml(a.name)}</div>
+          <div class="area-count">${count} task${count === 1 ? '' : 's'}</div>
+        </div>
+        <button class="icon-btn" onclick="deleteArea('${a.id}')">Delete</button>
+      </div>
+    `;
+  }).join('');
+}
+
+async function addArea() {
+  const input = document.getElementById('newAreaName');
+  const name = input.value.trim();
+  if (!name) return;
+  const { error } = await supabase.from('areas').insert({ name });
+  if (error) { alert('Could not add area: ' + error.message); return; }
+  input.value = '';
+  await loadAreas();
+  renderAreaDropdowns();
+  renderAreas();
+}
+
+async function deleteArea(id) {
+  const count = tasks.filter(t => t.area_id === id).length;
+  if (count > 0 && !confirm(`This area has ${count} task(s). They will become unassigned. Continue?`)) return;
+  const { error } = await supabase.from('areas').delete().eq('id', id);
+  if (error) { alert('Could not delete area: ' + error.message); return; }
+  await loadAreas();
+  await loadTasks();
+  renderAll();
+}
+
+/* ============================================================
+   TASK MODAL
+   ============================================================ */
+async function openTaskModal(taskId) {
+  currentTaskId = taskId || null;
+  document.getElementById('taskModalTitle').textContent = taskId ? 'Task Detail' : 'New Task';
+  document.getElementById('deleteTaskBtn').style.display = taskId ? 'inline-block' : 'none';
+  document.getElementById('commentSection').style.display = taskId ? 'block' : 'none';
+
+  if (taskId) {
+    const t = tasks.find(x => x.id === taskId);
+    document.getElementById('taskName').value = t.name;
+    document.getElementById('taskArea').value = t.area_id || '';
+    document.getElementById('taskStatus').value = t.status;
+    document.getElementById('taskDeadline').value = t.deadline || '';
+    document.getElementById('taskNotes').value = t.notes || '';
+    document.getElementById('taskStatus').dataset.prevStatus = t.status;
+    await renderCommentThread(taskId);
+  } else {
+    document.getElementById('taskName').value = '';
+    document.getElementById('taskArea').value = areas[0]?.id || '';
+    document.getElementById('taskStatus').value = 'Not Started';
+    document.getElementById('taskDeadline').value = '';
+    document.getElementById('taskNotes').value = '';
+  }
+
+  document.getElementById('taskModalOverlay').classList.add('active');
+}
+
+function closeTaskModal() {
+  document.getElementById('taskModalOverlay').classList.remove('active');
+  currentTaskId = null;
+}
+
+async function saveTask() {
+  const name = document.getElementById('taskName').value.trim();
+  if (!name) { alert('Task name is required.'); return; }
+  const area_id = document.getElementById('taskArea').value || null;
+  const status = document.getElementById('taskStatus').value;
+  const deadline = document.getElementById('taskDeadline').value || null;
+  const notes = document.getElementById('taskNotes').value.trim() || null;
+
+  if (currentTaskId) {
+    const prev = tasks.find(t => t.id === currentTaskId);
+    const { error } = await supabase.from('tasks').update({
+      name, area_id, status, deadline, notes, updated_at: new Date().toISOString()
+    }).eq('id', currentTaskId);
+    if (error) { alert('Could not save: ' + error.message); return; }
+
+    // Auto system comments for meaningful changes
+    if (prev.status !== status) {
+      await insertSystemComment(currentTaskId, `Status changed to ${status}`);
+    }
+    if (prev.deadline !== deadline) {
+      await insertSystemComment(currentTaskId, deadline ? `Deadline set to ${deadline}` : 'Deadline removed');
+    }
+  } else {
+    const { data, error } = await supabase.from('tasks').insert({ name, area_id, status, deadline, notes }).select().single();
+    if (error) { alert('Could not create task: ' + error.message); return; }
+    await insertSystemComment(data.id, 'Task created');
+  }
+
+  await loadTasks();
+  renderAll();
+  closeTaskModal();
+}
+
+async function deleteTask() {
+  if (!currentTaskId) return;
+  if (!confirm('Delete this task and all its comments?')) return;
+  const { error } = await supabase.from('tasks').delete().eq('id', currentTaskId);
+  if (error) { alert('Could not delete: ' + error.message); return; }
+  await loadTasks();
+  renderAll();
+  closeTaskModal();
+}
+
+async function insertSystemComment(taskId, text) {
+  await supabase.from('comments').insert({ task_id: taskId, author_name: 'System', text, is_system: true });
+}
+
+/* ============================================================
+   COMMENTS
+   ============================================================ */
+async function renderCommentThread(taskId) {
+  const comments = await loadComments(taskId);
+  const thread = document.getElementById('commentThread');
+  if (!comments.length) {
+    thread.innerHTML = '<div class="empty">No comments yet.</div>';
+    return;
+  }
+  thread.innerHTML = comments.map(c => `
+    <div class="comment ${c.is_system ? 'system' : ''}">
+      <div>${escapeHtml(c.text)}</div>
+      <div class="meta">${c.is_system ? 'System' : escapeHtml(c.author_name)} · ${timeAgo(c.created_at)}</div>
+    </div>
+  `).join('');
+  thread.scrollTop = thread.scrollHeight;
+}
+
+async function addComment() {
+  if (!currentTaskId) return;
+  const authorInput = document.getElementById('commentAuthor');
+  const textInput = document.getElementById('commentText');
+  const author_name = authorInput.value.trim() || 'Unknown';
+  const text = textInput.value.trim();
+  if (!text) return;
+
+  const { error } = await supabase.from('comments').insert({ task_id: currentTaskId, author_name, text });
+  if (error) { alert('Could not post comment: ' + error.message); return; }
+  textInput.value = '';
+  await renderCommentThread(currentTaskId);
+  renderRecentUpdates();
+}
+
+/* ============================================================
+   UTIL
+   ============================================================ */
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+checkSession();
+</script>
+</body>
+</html>
