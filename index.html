@@ -7,15 +7,16 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
-    --navy: #14213d;        /* deep navy — primary, matches wordmark */
-    --navy-light: #1f3363;  /* lighter navy for hover states */
+    --navy: #14213d;
+    --navy-light: #1f3363;
+    --sidebar-bg: #0f1830;
     --slate: #5b6270;
-    --paper: #f7f8fa;
+    --paper: #f6f7f9;
     --white: #ffffff;
     --line: #e2e5ea;
-    --amber: #c9822a;       /* warning/in-progress accent, kept distinct from brand red */
+    --amber: #c9822a;
     --green: #2f8f5b;
-    --red: #b3202f;         /* flag red — used as brand accent + overdue/error */
+    --red: #b3202f;
     --text: #1a2030;
     --muted: #7a8395;
     --radius: 8px;
@@ -32,62 +33,47 @@
 
   /* ---------- Login ---------- */
   #loginScreen {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--navy);
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--navy);
   }
-  .login-box {
-    background: var(--white);
-    border-radius: var(--radius);
-    padding: 40px 36px;
-    width: 340px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
-  }
+  .login-box { background: var(--white); border-radius: var(--radius); padding: 40px 36px; width: 340px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); }
   .login-logo { display: block; width: 100%; max-width: 200px; margin: 0 auto 20px; }
   .login-box h1 { font-size: 20px; margin: 0 0 4px; color: var(--navy); text-align: center; }
   .login-box p.sub { color: var(--muted); font-size: 13px; margin: 0 0 24px; text-align: center; }
-
-  .brand-chip {
-    width: 34px; height: 34px; background: white; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
-  }
-  .brand-chip img { width: 26px; height: 26px; object-fit: contain; }
-  .brand-group { display: flex; align-items: center; gap: 12px; }
-  .login-box input {
-    width: 100%; padding: 10px 12px; margin-bottom: 12px;
-    border: 1px solid var(--line); border-radius: 6px; font-size: 14px;
-  }
-  .login-box button {
-    width: 100%; padding: 11px; background: var(--navy); color: white;
-    border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;
-  }
+  .login-box input { width: 100%; padding: 10px 12px; margin-bottom: 12px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; }
+  .login-box button { width: 100%; padding: 11px; background: var(--navy); color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
   .login-box button:hover { background: var(--navy-light); }
   #loginError { color: var(--red); font-size: 13px; margin-top: 10px; display: none; }
 
-  /* ---------- Layout ---------- */
-  header.topbar {
-    background: var(--navy);
-    color: white;
-    padding: 14px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  header.topbar h1 { font-size: 16px; margin: 0; font-weight: 600; letter-spacing: 0.2px; }
-  nav.tabs { display: flex; gap: 4px; }
-  nav.tabs button {
-    background: transparent; border: none; color: rgba(255,255,255,0.65);
-    padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;
-  }
-  nav.tabs button.active { background: rgba(255,255,255,0.12); color: white; }
-  nav.tabs button:hover { color: white; }
-  #logoutBtn { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+  /* ---------- App shell ---------- */
+  .app-shell { display: flex; min-height: 100vh; }
 
-  main { max-width: 1080px; margin: 0 auto; padding: 24px; }
+  .sidebar {
+    width: 232px; flex-shrink: 0; background: var(--sidebar-bg); color: white;
+    display: flex; flex-direction: column; padding: 20px 14px; position: sticky; top: 0; height: 100vh;
+  }
+  .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 6px 8px 22px; }
+  .brand-chip { width: 32px; height: 32px; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+  .brand-chip img { width: 24px; height: 24px; object-fit: contain; }
+  .sidebar-brand .name { font-size: 13.5px; font-weight: 700; line-height: 1.25; }
+  .sidebar-brand .name span { display: block; font-weight: 400; opacity: 0.55; font-size: 11px; }
+
+  .sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
+  .sidebar-nav button {
+    display: flex; align-items: center; gap: 10px; background: transparent; border: none; color: rgba(255,255,255,0.68);
+    padding: 9px 10px; border-radius: 7px; cursor: pointer; font-size: 13.5px; font-weight: 500; text-align: left; width: 100%;
+  }
+  .sidebar-nav button .ic { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.85; }
+  .sidebar-nav button.active { background: rgba(255,255,255,0.12); color: white; }
+  .sidebar-nav button:hover { color: white; }
+
+  .sidebar-spacer { flex: 1; }
+  #logoutBtn { background: transparent; border: 1px solid rgba(255,255,255,0.25); color: rgba(255,255,255,0.85); padding: 8px 12px; border-radius: 7px; font-size: 12.5px; cursor: pointer; width: 100%; }
+  #logoutBtn:hover { background: rgba(255,255,255,0.08); color: white; }
+
+  main { flex: 1; padding: 26px 32px; max-width: 1180px; }
   .view { display: none; }
   .view.active { display: block; }
+  .view-title { font-size: 19px; font-weight: 700; color: var(--navy); margin: 0 0 18px; }
 
   /* ---------- Dashboard ---------- */
   .grid-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
@@ -120,20 +106,49 @@
 
   .empty { color: var(--muted); font-size: 13px; padding: 12px 0; }
 
-  /* ---------- Tasks view ---------- */
-  .toolbar { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; flex-wrap: wrap; }
-  .toolbar select, .toolbar input[type=text] {
-    padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; background: white;
-  }
-  .btn-primary {
-    background: var(--navy); color: white; border: none; padding: 9px 16px;
-    border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; margin-left: auto;
-  }
+  /* ---------- Tasks toolbar ---------- */
+  .toolbar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+  .toolbar select, .toolbar input[type=text] { padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; background: white; }
+  .btn-primary { background: var(--navy); color: white; border: none; padding: 9px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; margin-left: auto; }
   .btn-primary:hover { background: var(--navy-light); }
-  .btn-secondary {
-    background: white; color: var(--navy); border: 1px solid var(--line); padding: 8px 14px;
-    border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;
+  .btn-secondary { background: white; color: var(--navy); border: 1px solid var(--line); padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+  .view-toggle { display: flex; background: #eceff3; border-radius: 7px; padding: 3px; gap: 2px; }
+  .view-toggle button { border: none; background: transparent; padding: 6px 14px; border-radius: 5px; font-size: 12.5px; font-weight: 600; color: var(--slate); cursor: pointer; }
+  .view-toggle button.active { background: white; color: var(--navy); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+
+  .area-pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; background: #eef0f5; color: var(--navy); }
+
+  /* ---------- Import banner ---------- */
+  .import-banner {
+    border: 1.5px dashed #c7cfe0; border-radius: var(--radius); background: #fbfcfe; padding: 18px 20px;
+    display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 18px;
   }
+  .import-banner .txt h3 { margin: 0 0 3px; font-size: 14px; color: var(--navy); }
+  .import-banner .txt p { margin: 0; font-size: 12.5px; color: var(--muted); }
+
+  /* ---------- Phase swimlanes (List view) ---------- */
+  .phase-section { margin-bottom: 18px; }
+  .phase-header { display: flex; align-items: center; gap: 10px; padding: 10px 4px; cursor: pointer; user-select: none; }
+  .phase-header .caret { font-size: 11px; color: var(--muted); transition: transform 0.15s ease; }
+  .phase-header.collapsed .caret { transform: rotate(-90deg); }
+  .phase-name { font-size: 13.5px; font-weight: 700; color: var(--navy); }
+  .phase-count { font-size: 12px; color: var(--muted); }
+  .phase-bar-track { flex: 1; max-width: 140px; height: 5px; background: #eceff3; border-radius: 999px; overflow: hidden; }
+  .phase-bar-fill { height: 100%; background: var(--green); border-radius: 999px; }
+  .phase-body { background: white; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .phase-body.hidden { display: none; }
+
+  /* ---------- Board view ---------- */
+  .board-columns { display: flex; gap: 14px; align-items: flex-start; }
+  .board-column { flex: 1; background: #eef0f4; border-radius: var(--radius); padding: 12px; min-height: 120px; }
+  .board-column-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 0 2px; }
+  .board-column-header .title { font-size: 12.5px; font-weight: 700; color: var(--slate); text-transform: uppercase; letter-spacing: 0.02em; }
+  .board-column-header .count { font-size: 11px; color: var(--muted); background: white; padding: 1px 7px; border-radius: 999px; }
+  .board-card { background: white; border: 1px solid var(--line); border-radius: 7px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; }
+  .board-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .board-card .task-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .board-card .card-meta { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
 
   /* ---------- Areas view ---------- */
   .area-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 8px; border-bottom: 1px solid var(--line); }
@@ -144,21 +159,13 @@
   .icon-btn:hover { color: var(--red); }
 
   /* ---------- Modal ---------- */
-  .modal-overlay {
-    display: none; position: fixed; inset: 0; background: rgba(15,20,35,0.55);
-    align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; z-index: 50;
-  }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,20,35,0.55); align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; z-index: 50; }
   .modal-overlay.active { display: flex; }
-  .modal {
-    background: white; border-radius: var(--radius); width: 100%; max-width: 560px;
-    padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-  }
+  .modal { background: white; border-radius: var(--radius); width: 100%; max-width: 560px; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
   .modal h2 { margin: 0 0 18px; font-size: 17px; color: var(--navy); }
   .field { margin-bottom: 14px; }
   .field label { display: block; font-size: 12px; font-weight: 600; color: var(--slate); margin-bottom: 5px; }
-  .field input, .field select, .field textarea {
-    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; font-family: inherit;
-  }
+  .field input, .field select, .field textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; font-family: inherit; }
   .field textarea { resize: vertical; min-height: 60px; }
   .field-row { display: flex; gap: 12px; }
   .field-row .field { flex: 1; }
@@ -191,90 +198,117 @@
 
 <!-- ================= APP ================= -->
 <div id="app">
-  <header class="topbar">
-    <div class="brand-group">
-      <div class="brand-chip"><img src="logo_icon.png" alt="" /></div>
-      <h1>Green Card Impact <span style="opacity:0.55; font-weight:400;">— Tracker</span></h1>
-    </div>
-    <nav class="tabs">
-      <button data-view="dashboard" class="active" onclick="switchView('dashboard')">Dashboard</button>
-      <button data-view="tasks" onclick="switchView('tasks')">Tasks</button>
-      <button data-view="areas" onclick="switchView('areas')">Areas</button>
-    </nav>
-    <button id="logoutBtn" onclick="handleLogout()">Sign out</button>
-  </header>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-chip"><img src="logo_icon.png" alt="" /></div>
+        <div class="name">Green Card Impact<span>Progress Tracker</span></div>
+      </div>
+      <nav class="sidebar-nav">
+        <button data-view="dashboard" class="active" onclick="switchView('dashboard')">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          Dashboard
+        </button>
+        <button data-view="tasks" onclick="switchView('tasks')">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
+          Tasks
+        </button>
+        <button data-view="areas" onclick="switchView('areas')">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          Areas
+        </button>
+      </nav>
+      <div class="sidebar-spacer"></div>
+      <button id="logoutBtn" onclick="handleLogout()">Sign out</button>
+    </aside>
 
-  <main>
-    <!-- ---------- DASHBOARD ---------- -->
-    <div class="view active" id="view-dashboard">
-      <div class="grid-cards">
-        <div class="card progress-card">
-          <div class="label">OVERALL PROGRESS</div>
-          <div class="num" id="progressPct">0%</div>
-          <div class="progress-bar-track"><div class="progress-bar-fill" id="progressBarFill" style="width:0%"></div></div>
+    <main>
+      <!-- ---------- DASHBOARD ---------- -->
+      <div class="view active" id="view-dashboard">
+        <div class="grid-cards">
+          <div class="card progress-card">
+            <div class="label">OVERALL PROGRESS</div>
+            <div class="num" id="progressPct">0%</div>
+            <div class="progress-bar-track"><div class="progress-bar-fill" id="progressBarFill" style="width:0%"></div></div>
+          </div>
+        </div>
+        <div class="grid-cards">
+          <div class="card"><div class="num" id="statTotal">0</div><div class="label">Total Tasks</div></div>
+          <div class="card"><div class="num" id="statCompleted">0</div><div class="label">Completed</div></div>
+          <div class="card"><div class="num" id="statInProgress">0</div><div class="label">In Progress</div></div>
+          <div class="card"><div class="num" id="statNotStarted">0</div><div class="label">Not Started</div></div>
+        </div>
+
+        <div class="panel">
+          <h2>Upcoming Deadlines</h2>
+          <table>
+            <thead><tr><th>Task</th><th>Area</th><th>Deadline</th><th>Status</th></tr></thead>
+            <tbody id="upcomingDeadlinesBody"></tbody>
+          </table>
+          <div class="empty" id="upcomingDeadlinesEmpty" style="display:none;">No upcoming deadlines.</div>
+        </div>
+
+        <div class="panel">
+          <h2>Recent Updates</h2>
+          <div id="recentUpdatesList"></div>
+          <div class="empty" id="recentUpdatesEmpty" style="display:none;">No recent activity yet.</div>
         </div>
       </div>
-      <div class="grid-cards">
-        <div class="card"><div class="num" id="statTotal">0</div><div class="label">Total Tasks</div></div>
-        <div class="card"><div class="num" id="statCompleted">0</div><div class="label">Completed</div></div>
-        <div class="card"><div class="num" id="statInProgress">0</div><div class="label">In Progress</div></div>
-        <div class="card"><div class="num" id="statNotStarted">0</div><div class="label">Not Started</div></div>
-      </div>
 
-      <div class="panel">
-        <h2>Upcoming Deadlines</h2>
-        <table>
-          <thead><tr><th>Task</th><th>Area</th><th>Deadline</th><th>Status</th></tr></thead>
-          <tbody id="upcomingDeadlinesBody"></tbody>
-        </table>
-        <div class="empty" id="upcomingDeadlinesEmpty" style="display:none;">No upcoming deadlines.</div>
-      </div>
+      <!-- ---------- TASKS ---------- -->
+      <div class="view" id="view-tasks">
+        <h1 class="view-title">Tasks</h1>
 
-      <div class="panel">
-        <h2>Recent Updates</h2>
-        <div id="recentUpdatesList"></div>
-        <div class="empty" id="recentUpdatesEmpty" style="display:none;">No recent activity yet.</div>
-      </div>
-    </div>
+        <div class="import-banner" id="importBanner" style="display:none;">
+          <div class="txt">
+            <h3>Set up starter tasks</h3>
+            <p>Creates the initial task set across all areas (Memberships, Awards, Judging, Scholarly Articles, Speaking Opportunities, LOR) in one go.</p>
+          </div>
+          <button class="btn-secondary" style="white-space:nowrap;" onclick="importStarterTasks()">Import Starter Tasks</button>
+        </div>
 
-    <!-- ---------- TASKS ---------- -->
-    <div class="view" id="view-tasks">
-      <div class="toolbar">
-        <select id="filterArea" onchange="renderTasks()"><option value="">All Areas</option></select>
-        <select id="filterStatus" onchange="renderTasks()">
-          <option value="">All Statuses</option>
-          <option>Not Started</option>
-          <option>In Progress</option>
-          <option>Completed</option>
-        </select>
-        <select id="sortBy" onchange="renderTasks()">
-          <option value="deadline">Sort: Deadline</option>
-          <option value="updated">Sort: Recently Updated</option>
-          <option value="status">Sort: Status</option>
-          <option value="area">Sort: Area</option>
-        </select>
-        <button class="btn-primary" onclick="openTaskModal()">+ Add Task</button>
-      </div>
-      <div class="panel">
-        <table>
-          <thead><tr><th>Task</th><th>Area</th><th>Status</th><th>Deadline</th></tr></thead>
-          <tbody id="tasksBody"></tbody>
-        </table>
+        <div class="toolbar">
+          <div class="view-toggle">
+            <button id="toggleListBtn" class="active" onclick="switchTaskView('list')">List</button>
+            <button id="toggleBoardBtn" onclick="switchTaskView('board')">Board</button>
+          </div>
+          <select id="filterArea" onchange="renderTasks()"><option value="">All Areas</option></select>
+          <select id="filterStatus" onchange="renderTasks()">
+            <option value="">All Statuses</option>
+            <option>Not Started</option>
+            <option>In Progress</option>
+            <option>Completed</option>
+          </select>
+          <select id="sortBy" onchange="renderTasks()">
+            <option value="deadline">Sort: Deadline</option>
+            <option value="updated">Sort: Recently Updated</option>
+            <option value="area">Sort: Area</option>
+          </select>
+          <button class="btn-primary" onclick="openTaskModal()">+ Add Task</button>
+        </div>
+
+        <!-- LIST VIEW: Phase swimlanes -->
+        <div id="tasksListView"></div>
+
+        <!-- BOARD VIEW: Kanban -->
+        <div id="tasksBoardView" class="board-columns" style="display:none;"></div>
+
         <div class="empty" id="tasksEmpty" style="display:none;">No tasks match this filter.</div>
       </div>
-    </div>
 
-    <!-- ---------- AREAS ---------- -->
-    <div class="view" id="view-areas">
-      <div class="toolbar">
-        <input type="text" id="newAreaName" placeholder="New area name" style="flex:1; max-width:260px;" />
-        <button class="btn-primary" style="margin-left:0;" onclick="addArea()">+ Add Area</button>
+      <!-- ---------- AREAS ---------- -->
+      <div class="view" id="view-areas">
+        <h1 class="view-title">Areas</h1>
+        <div class="toolbar">
+          <input type="text" id="newAreaName" placeholder="New area name" style="flex:1; max-width:260px;" />
+          <button class="btn-primary" style="margin-left:0;" onclick="addArea()">+ Add Area</button>
+        </div>
+        <div class="panel">
+          <div id="areasList"></div>
+        </div>
       </div>
-      <div class="panel">
-        <div id="areasList"></div>
-      </div>
-    </div>
-  </main>
+    </main>
+  </div>
 </div>
 
 <!-- ================= TASK MODAL ================= -->
@@ -336,11 +370,59 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ============================================================
+   PHASE MAPPING (hardcoded — no schema change needed)
+   ============================================================ */
+const AREA_PHASE_MAP = {
+  "foe + intakes": "Intake + FOE",
+  "memberships": "Evidence Building",
+  "awards": "Evidence Building",
+  "judging": "Evidence Building",
+  "scholarly articles": "Evidence Building",
+  "media research": "Evidence Building",
+  "speaking opportunities": "Evidence Building",
+  "lor": "Finalization",
+  "merit guide": "Finalization"
+};
+const PHASE_ORDER = ["Intake + FOE", "Evidence Building", "Finalization", "Unassigned"];
+
+/* ============================================================
+   STARTER TASK SET (one-time import, no SQL required)
+   ============================================================ */
+const STARTER_TASKS = [
+  { area: "FOE + Intakes", name: "FOE + Intake Process", status: "Completed" },
+  { area: "Media Research", name: "Media Research", status: "Completed" },
+  { area: "Memberships", name: "Membership Application 1", status: "Not Started" },
+  { area: "Memberships", name: "Membership Application 2", status: "Not Started" },
+  { area: "Memberships", name: "Membership Application 3", status: "Not Started" },
+  { area: "Memberships", name: "Membership Application 4", status: "Not Started" },
+  { area: "Awards", name: "Award Application", status: "Not Started" },
+  { area: "Judging", name: "Judging Opportunity 1", status: "Not Started" },
+  { area: "Judging", name: "Judging Opportunity 2", status: "Not Started" },
+  { area: "Judging", name: "Judging Opportunity 3", status: "Not Started" },
+  { area: "Judging", name: "Judging Opportunity 4", status: "Not Started" },
+  { area: "Scholarly Articles", name: "Scholarly Article 1", status: "Not Started", notes: "Stage: Writing" },
+  { area: "Scholarly Articles", name: "Scholarly Article 2", status: "Not Started", notes: "Stage: Writing" },
+  { area: "Scholarly Articles", name: "Scholarly Article 3", status: "Not Started", notes: "Stage: Writing" },
+  { area: "Scholarly Articles", name: "Scholarly Article 4", status: "Not Started", notes: "Stage: Writing" },
+  { area: "Speaking Opportunities", name: "Speaking Opportunity 1", status: "Not Started" },
+  { area: "Speaking Opportunities", name: "Speaking Opportunity 2", status: "Not Started" },
+  { area: "LOR", name: "LOR Batch 1 — Recommender 1", status: "Not Started" },
+  { area: "LOR", name: "LOR Batch 1 — Recommender 2", status: "Not Started" },
+  { area: "LOR", name: "LOR Batch 1 — Recommender 3", status: "Not Started" },
+  { area: "LOR", name: "LOR Batch 2 — Recommender 1", status: "Not Started" },
+  { area: "LOR", name: "LOR Batch 2 — Recommender 2", status: "Not Started" },
+  { area: "LOR", name: "LOR Batch 2 — Recommender 3", status: "Not Started" }
+];
+const STARTER_EXTRA_AREAS = ["Merit Guide"]; // areas with no starter tasks yet
+
+/* ============================================================
    STATE
    ============================================================ */
 let areas = [];
 let tasks = [];
-let currentTaskId = null; // null = creating new task
+let currentTaskId = null;
+let currentTaskView = 'list';
+let collapsedPhases = {};
 
 /* ============================================================
    AUTH
@@ -365,9 +447,7 @@ async function handleLogout() {
 
 async function checkSession() {
   const { data } = await supabaseClient.auth.getSession();
-  if (data.session) {
-    await boot();
-  }
+  if (data.session) await boot();
 }
 
 async function boot() {
@@ -384,8 +464,16 @@ async function boot() {
 function switchView(view) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + view).classList.add('active');
-  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
-  document.querySelector(`nav.tabs button[data-view="${view}"]`).classList.add('active');
+  document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.sidebar-nav button[data-view="${view}"]`).classList.add('active');
+  if (view === 'tasks') renderTasks();
+}
+
+function switchTaskView(v) {
+  currentTaskView = v;
+  document.getElementById('toggleListBtn').classList.toggle('active', v === 'list');
+  document.getElementById('toggleBoardBtn').classList.toggle('active', v === 'board');
+  renderTasks();
 }
 
 /* ============================================================
@@ -425,6 +513,12 @@ function renderAreaDropdowns() {
 function areaName(id) {
   const a = areas.find(x => x.id === id);
   return a ? a.name : '—';
+}
+
+function phaseForAreaId(areaId) {
+  const name = areaName(areaId);
+  if (!name || name === '—') return 'Unassigned';
+  return AREA_PHASE_MAP[name.toLowerCase()] || 'Unassigned';
 }
 
 /* ============================================================
@@ -472,7 +566,6 @@ function renderDashboard() {
   document.getElementById('statInProgress').textContent = inProgress;
   document.getElementById('statNotStarted').textContent = notStarted;
 
-  // Upcoming deadlines: not completed, has deadline, sorted ascending
   const upcoming = tasks
     .filter(t => t.deadline && t.status !== 'Completed')
     .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
@@ -524,9 +617,23 @@ function timeAgo(iso) {
 }
 
 /* ============================================================
-   RENDER — TASKS
+   RENDER — TASKS (dispatcher)
    ============================================================ */
 function renderTasks() {
+  document.getElementById('importBanner').style.display = tasks.length === 0 ? 'flex' : 'none';
+
+  if (currentTaskView === 'list') {
+    document.getElementById('tasksListView').style.display = 'block';
+    document.getElementById('tasksBoardView').style.display = 'none';
+    renderTasksList();
+  } else {
+    document.getElementById('tasksListView').style.display = 'none';
+    document.getElementById('tasksBoardView').style.display = 'flex';
+    renderTasksBoard();
+  }
+}
+
+function getFilteredSortedTasks() {
   const areaFilter = document.getElementById('filterArea').value;
   const statusFilter = document.getElementById('filterStatus').value;
   const sortBy = document.getElementById('sortBy').value;
@@ -543,21 +650,134 @@ function renderTasks() {
       return new Date(a.deadline) - new Date(b.deadline);
     }
     if (sortBy === 'updated') return new Date(b.updated_at) - new Date(a.updated_at);
-    if (sortBy === 'status') return a.status.localeCompare(b.status);
     if (sortBy === 'area') return areaName(a.area_id).localeCompare(areaName(b.area_id));
     return 0;
   });
 
-  const body = document.getElementById('tasksBody');
+  return filtered;
+}
+
+/* ---------- List view: Phase swimlanes ---------- */
+function renderTasksList() {
+  const filtered = getFilteredSortedTasks();
   document.getElementById('tasksEmpty').style.display = filtered.length ? 'none' : 'block';
-  body.innerHTML = filtered.map(t => `
-    <tr class="clickable" onclick="openTaskModal('${t.id}')">
-      <td>${escapeHtml(t.name)}</td>
-      <td>${escapeHtml(areaName(t.area_id))}</td>
-      <td>${statusBadge(t.status)}</td>
-      <td>${deadlineLabel(t.deadline, t.status)}</td>
-    </tr>
-  `).join('');
+
+  const grouped = {};
+  PHASE_ORDER.forEach(p => grouped[p] = []);
+  filtered.forEach(t => {
+    const phase = phaseForAreaId(t.area_id);
+    if (!grouped[phase]) grouped[phase] = [];
+    grouped[phase].push(t);
+  });
+
+  const container = document.getElementById('tasksListView');
+  container.innerHTML = PHASE_ORDER
+    .filter(phase => grouped[phase] && grouped[phase].length > 0)
+    .map(phase => {
+      const phaseTasks = grouped[phase];
+      const completed = phaseTasks.filter(t => t.status === 'Completed').length;
+      const pct = phaseTasks.length ? Math.round((completed / phaseTasks.length) * 100) : 0;
+      const isCollapsed = collapsedPhases[phase];
+      const rows = phaseTasks.map(t => `
+        <tr class="clickable" onclick="openTaskModal('${t.id}')">
+          <td>${escapeHtml(t.name)}</td>
+          <td><span class="area-pill">${escapeHtml(areaName(t.area_id))}</span></td>
+          <td>${statusBadge(t.status)}</td>
+          <td>${deadlineLabel(t.deadline, t.status)}</td>
+        </tr>
+      `).join('');
+
+      return `
+        <div class="phase-section">
+          <div class="phase-header ${isCollapsed ? 'collapsed' : ''}" onclick="togglePhase('${phase}')">
+            <span class="caret">▾</span>
+            <span class="phase-name">${escapeHtml(phase)}</span>
+            <span class="phase-count">${phaseTasks.length} task${phaseTasks.length === 1 ? '' : 's'} · ${pct}% complete</span>
+            <div class="phase-bar-track"><div class="phase-bar-fill" style="width:${pct}%"></div></div>
+          </div>
+          <div class="phase-body ${isCollapsed ? 'hidden' : ''}">
+            <table>
+              <thead><tr><th>Task</th><th>Area</th><th>Status</th><th>Deadline</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }).join('');
+}
+
+function togglePhase(phase) {
+  collapsedPhases[phase] = !collapsedPhases[phase];
+  renderTasksList();
+}
+
+/* ---------- Board view: Kanban by status ---------- */
+function renderTasksBoard() {
+  const areaFilter = document.getElementById('filterArea').value;
+  let filtered = tasks.filter(t => !areaFilter || t.area_id === areaFilter);
+  document.getElementById('tasksEmpty').style.display = filtered.length ? 'none' : 'block';
+
+  const columns = [
+    { key: 'Not Started', label: 'Not Started' },
+    { key: 'In Progress', label: 'In Progress' },
+    { key: 'Completed', label: 'Completed' }
+  ];
+
+  const container = document.getElementById('tasksBoardView');
+  container.innerHTML = columns.map(col => {
+    const colTasks = filtered.filter(t => t.status === col.key);
+    const cards = colTasks.map(t => `
+      <div class="board-card" onclick="openTaskModal('${t.id}')">
+        <div class="task-name">${escapeHtml(t.name)}</div>
+        <div class="card-meta">
+          <span class="area-pill">${escapeHtml(areaName(t.area_id))}</span>
+          ${t.deadline ? deadlineLabel(t.deadline, t.status) : ''}
+        </div>
+      </div>
+    `).join('');
+    return `
+      <div class="board-column">
+        <div class="board-column-header">
+          <span class="title">${col.label}</span>
+          <span class="count">${colTasks.length}</span>
+        </div>
+        ${cards || '<div class="empty" style="padding:6px 2px;">No tasks</div>'}
+      </div>
+    `;
+  }).join('');
+}
+
+/* ============================================================
+   STARTER TASK IMPORT (one-time, no SQL)
+   ============================================================ */
+async function importStarterTasks() {
+  if (!confirm('This will create the starter task set (23 tasks across all areas) for Green Card Impact. Continue?')) return;
+
+  const neededAreaNames = [...new Set(STARTER_TASKS.map(t => t.area))].concat(STARTER_EXTRA_AREAS);
+
+  for (const name of neededAreaNames) {
+    const exists = areas.find(a => a.name.toLowerCase() === name.toLowerCase());
+    if (!exists) {
+      const { data, error } = await supabaseClient.from('areas').insert({ name }).select().single();
+      if (!error && data) areas.push(data);
+    }
+  }
+  renderAreaDropdowns();
+
+  for (const t of STARTER_TASKS) {
+    const area = areas.find(a => a.name.toLowerCase() === t.area.toLowerCase());
+    await supabaseClient.from('tasks').insert({
+      name: t.name,
+      area_id: area ? area.id : null,
+      status: t.status,
+      notes: t.notes || null
+    });
+  }
+
+  await loadAreas();
+  await loadTasks();
+  renderAll();
+  alert('Starter tasks imported.');
 }
 
 /* ============================================================
@@ -571,10 +791,11 @@ function renderAreas() {
   }
   list.innerHTML = areas.map(a => {
     const count = tasks.filter(t => t.area_id === a.id).length;
+    const phase = AREA_PHASE_MAP[a.name.toLowerCase()] || 'Unassigned';
     return `
       <div class="area-row">
         <div>
-          <div class="area-name">${escapeHtml(a.name)}</div>
+          <div class="area-name">${escapeHtml(a.name)} <span class="area-pill" style="margin-left:6px;">${escapeHtml(phase)}</span></div>
           <div class="area-count">${count} task${count === 1 ? '' : 's'}</div>
         </div>
         <button class="icon-btn" onclick="deleteArea('${a.id}')">Delete</button>
@@ -654,7 +875,6 @@ async function saveTask() {
     }).eq('id', currentTaskId);
     if (error) { alert('Could not save: ' + error.message); return; }
 
-    // Auto system comments for meaningful changes
     if (prev.status !== status) {
       await insertSystemComment(currentTaskId, `Status changed to ${status}`);
     }
