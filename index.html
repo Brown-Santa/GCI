@@ -185,12 +185,33 @@
   .update-card{
     background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;
   }
-  .update-body{font-size:14px;color:var(--text);white-space:pre-wrap;line-height:1.5;}
+  .update-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+  .update-body{font-size:14px;color:var(--text);white-space:pre-wrap;line-height:1.5;flex:1;}
   .update-link{
     display:inline-flex;align-items:center;gap:6px;font-size:13px;margin-top:8px;
     color:var(--navy);text-decoration:underline;
   }
-  .update-meta{font-size:11.5px;color:var(--muted-2);margin-top:8px;}
+  .update-meta{font-size:11.5px;color:var(--muted-2);margin-top:8px;display:flex;align-items:center;gap:10px;}
+  .update-actions{display:flex;gap:4px;flex-shrink:0;}
+  .icon-btn{
+    background:none;border:none;color:var(--muted-2);font-size:12.5px;padding:3px 7px;border-radius:6px;
+  }
+  .icon-btn:hover{background:#F1EEE5;color:var(--navy);}
+  .icon-btn.danger:hover{color:var(--red);}
+  .update-edit textarea{
+    width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;
+    font-family:inherit;resize:vertical;min-height:60px;background:#FAFAF7;
+  }
+  .update-edit input[type=url]{
+    width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13.5px;
+    margin-top:8px;background:#FAFAF7;
+  }
+  .update-edit .row-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;}
+  .btn-secondary{
+    background:#fff;color:var(--navy);border:1px solid var(--border);padding:9px 16px;border-radius:8px;
+    font-size:13.5px;font-weight:600;
+  }
+  .btn-secondary:hover{border-color:var(--navy);}
   .empty-state{color:var(--muted-2);font-size:13.5px;padding:20px 0;}
 </style>
 </head>
@@ -307,8 +328,10 @@
   const TASK_ORDER = ["foe","media_research","scholarly_articles","membership","judging","lor","merit_guide"];
   const STATUS_LABEL = { completed: "Completed", ongoing: "Ongoing", not_started: "Not Started" };
 
-  let tasks = [];       // all 7 tasks
+  let tasks = [];          // all 7 tasks
   let currentTaskId = null;
+  let currentUpdates = []; // updates for the open task
+  let editingUpdateId = null;
 
   // ---------------- AUTH ----------------
   async function handleLogin(){
@@ -389,6 +412,27 @@
     await openTaskDetail(taskId);
   }
 
+  async function saveUpdateEdit(updateId, body, link){
+    if (!body.trim()) return;
+    const { error } = await supabaseClient
+      .from("updates")
+      .update({ body: body.trim(), link_url: link.trim() || null })
+      .eq("id", updateId);
+    if (error) { console.error(error); return; }
+    editingUpdateId = null;
+    await openTaskDetail(currentTaskId);
+  }
+
+  async function deleteUpdate(updateId){
+    if (!confirm("Delete this update? This cannot be undone.")) return;
+    const { error } = await supabaseClient
+      .from("updates")
+      .delete()
+      .eq("id", updateId);
+    if (error) { console.error(error); return; }
+    await openTaskDetail(currentTaskId);
+  }
+
   // ---------------- RENDER: SIDEBAR ----------------
   function renderSidebarTasks(){
     const el = document.getElementById("navTasks");
@@ -459,24 +503,64 @@
     document.getElementById("detailTitle").textContent = t.name;
     renderStatusPicker(taskId);
 
-    const updates = await loadUpdates(taskId);
+    currentUpdates = await loadUpdates(taskId);
+    editingUpdateId = null;
+    renderUpdatesList();
+  }
+
+  function renderUpdatesList(){
     const list = document.getElementById("updatesList");
     list.innerHTML = "";
-    if (updates.length === 0) {
+    if (currentUpdates.length === 0) {
       list.innerHTML = `<div class="empty-state">No updates logged yet. Add the first one above.</div>`;
-    } else {
-      updates.forEach(u => {
-        const card = document.createElement("div");
-        card.className = "update-card";
+      return;
+    }
+    currentUpdates.forEach(u => {
+      const card = document.createElement("div");
+      card.className = "update-card";
+
+      if (editingUpdateId === u.id) {
+        card.innerHTML = `
+          <div class="update-edit">
+            <textarea id="editBody_${u.id}">${escapeHtml(u.body)}</textarea>
+            <input type="url" id="editLink_${u.id}" value="${escapeAttr(u.link_url || "")}" placeholder="Optional link (Google Sheet, Google Doc, etc.)">
+            <div class="row-actions">
+              <button class="btn-secondary" data-cancel="${u.id}">Cancel</button>
+              <button class="btn-primary" data-save="${u.id}">Save</button>
+            </div>
+          </div>
+        `;
+        card.querySelector(`[data-cancel="${u.id}"]`).addEventListener("click", () => {
+          editingUpdateId = null;
+          renderUpdatesList();
+        });
+        card.querySelector(`[data-save="${u.id}"]`).addEventListener("click", () => {
+          const body = document.getElementById(`editBody_${u.id}`).value;
+          const link = document.getElementById(`editLink_${u.id}`).value;
+          saveUpdateEdit(u.id, body, link);
+        });
+      } else {
         const date = new Date(u.created_at).toLocaleDateString(undefined, { year:"numeric", month:"short", day:"numeric" });
         card.innerHTML = `
-          <div class="update-body">${escapeHtml(u.body)}</div>
+          <div class="update-top">
+            <div class="update-body">${escapeHtml(u.body)}</div>
+            <div class="update-actions">
+              <button class="icon-btn" data-edit="${u.id}">Edit</button>
+              <button class="icon-btn danger" data-del="${u.id}">Delete</button>
+            </div>
+          </div>
           ${u.link_url ? `<a class="update-link" href="${escapeAttr(u.link_url)}" target="_blank" rel="noopener">🔗 ${escapeHtml(u.link_url)}</a>` : ""}
           <div class="update-meta">${date}</div>
         `;
-        list.appendChild(card);
-      });
-    }
+        card.querySelector(`[data-edit="${u.id}"]`).addEventListener("click", () => {
+          editingUpdateId = u.id;
+          renderUpdatesList();
+        });
+        card.querySelector(`[data-del="${u.id}"]`).addEventListener("click", () => deleteUpdate(u.id));
+      }
+
+      list.appendChild(card);
+    });
   }
 
   function renderStatusPicker(taskId){
